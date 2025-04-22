@@ -1,0 +1,306 @@
+---
+title: "Assignment 2 _ Data Manipulation In R"
+author: "Nwaneri Tochi , Mr. Charles Nworu"
+date: "2025-04-22"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+# load libraries
+library(dplyr)
+library(readxl)
+```
+
+
+```{r} 
+# load the dataset
+data <- read_excel("C:/Users/Owner/Documents/countries.xlsx")
+
+
+#View first few rows
+head(data)
+```
+
+1a. Countries in 2010 with GDP > $500 billion
+```{r}
+data_2010_gdp <- data %>%
+  filter(Year == 2010, GDP > 500e9)
+data_2010_gdp
+```
+
+1b. African countries with population density > 100
+```{r}
+africa_density <- data %>%
+  filter(`Continent Name` =="Africa", `Population Density` > 100 )
+africa_density
+```
+
+1c. Agriculture  < 10% and Health expenditure > 8%
+```{r}
+agri_health <- data %>%
+  filter(`Agriculture (% GDP)` < 10, `Health Expenditure (% GDP)` > 8)
+agri_health
+```
+
+1d. List the countries from Asia where Education Expenditure was not missing in the year 2005
+```{r}
+asia_edu_2005 <- data %>%
+  filter(`Continent Name` == "Asia", Year == "2005", !is.na(`Education Expenditure`))
+asia_edu_2005
+```
+
+2a.	Select only the Country Name, Year, and GDP columns.
+```{r}
+selected_cols <-  data %>%
+  select(`Country Name`, Year, GDP)
+selected_cols
+```
+2b.	Use a helper function to select all columns that start with "Health".
+```{r}
+health_cols <- data%>%
+  select(starts_with("Health"))
+health_cols
+```
+2c.	Select a range of columns from GDP to Import (% GDP) to analyze economic indicators
+```{r}
+economic_indicators <- data%>%
+  select(GDP:`Import (% GDP)`)
+economic_indicators
+```
+3a.	Create a new column GDP in Billions by dividing GDP by 1e9.
+```{r}
+data <- data %>%
+  mutate('GDP Billions' = GDP / 1e9)
+head(data)
+
+```
+3b.	Add a column called High Population to label entries where the population is above 100 million.
+```{r}
+data <- data %>%
+  mutate('High Population' = Population > 100e6)
+head(data)
+```
+3c.	Use case_when() to categorize countries into "Low", "Medium", and "High" GDP per capita based on thresholds of 1000 and 10000.
+```{r}
+data <- data%>%
+  mutate('GDP CATEGORY' = case_when(
+    `GDP Per Capita` < 1000 ~ "Low",
+    `GDP Per Capita` >= 1000 & `GDP Per Capita` < 10000 ~ "Medium",
+    `GDP Per Capita` >= 10000 ~ "High"
+  ) )
+
+head(data)
+
+```
+I made a mistake by adding two columns of GDP Billions; GDP_Billions & GDP Billions. I want to get rid of the one with the underscore
+```{r}
+data <- data %>%
+  mutate('GDP_Billions' = NULL)
+head(data)
+```
+4a.	Sort the dataset by GDP in descending order to find the highest GDP countries
+```{r}
+sorted_gdp <- data%>%
+  arrange(desc(GDP))
+head(sorted_gdp)
+```
+4b.	Arrange countries within the same continent in ascending order of Population Density.
+```{r}
+sorted_by_continent_pop <- data%>%
+  arrange(`Continent Name`,`Population Density`)
+head(sorted_by_continent_pop)
+```
+5a.	What is the average GDP per capita for each continent?
+```{r}
+avg_gdp_per_continent <- data %>%
+  group_by(`Continent Name`)%>%
+  summarise(Average_GDP_Per_Capita = mean(`GDP Per Capita`, na.rm = T))
+avg_gdp_per_continent
+```
+5b.	How many records are there for each country in the dataset?
+```{r}
+data%>%
+  group_by(`Country Name`) %>%
+  summarise(record_count = n())
+```
+d.	Calculate the mean, minimum, and maximum of Health Expenditure (% GDP) grouped by Continent Name.\
+```{r}
+data %>%
+  group_by(`Continent Name`)%>%
+  summarise(
+    Mean_health_Expenditure = mean(`Health Expenditure (% GDP)`, na.rm = T),
+    Min_Health_Expenditure = min(`Health Expenditure (% GDP)`, na.rm = T ),
+    Max_Health_Expenditure = max(`Health Expenditure (% GDP)`, na.rm =  T)
+  )
+head(data)
+```
+6a.	Chain together operations to filter only African countries from 2015, then select the Country Name, GDP, and Population, and arrange them in descending order of GDP.
+```{r}
+data%>%
+  filter(`Continent Name` == "Africa", Year == 2015)%>%
+  select(`Country Name`, GDP, Population)%>%
+  arrange(desc(GDP))
+head(data)
+```
+6b.	For each continent, calculate the average GDP Per Capita, but only for countries with Education Expenditure (% GDP) greater than 4%.
+```{r}
+data %>%
+  filter(`Education Expenditure (% GDP)` > 4) %>%
+  group_by(`Continent Name`) %>%
+  summarise(Average_GDP_Per_Capita = mean(`GDP Per Capita`, na.rm = T))
+```
+6c.	Filter countries with a population over 50 million, create a column for GDP in billions, and show only the top 5 highest GDPs.
+```{r}
+data %>%
+  filter(Population > 50e6) %>%
+  mutate(`GDP Billions` = GDP / 1e9)%>%
+  select(`Country Name`, Population, `GDP Billions`) %>%
+  slice_head(n = 5)
+head(data)
+```
+7a.	Rename GDP Per Capita to GDP_per_capita_USD and Country Name to country_name.
+```{r}
+data <- data %>%
+  rename(
+    `GDP_Per_Capita_USD` = `GDP Per Capita`,`Country_Name` = `Country Name`
+  )
+names(data)
+```
+7b.	Change Health Expenditure (% GDP) to health_pct_gdp for clarity in plotting
+.
+```{r}
+data <- data %>%
+  rename (
+    health_pct_gdp = `Health Expenditure (% GDP)`
+  )
+head(data)
+```
+8a.	Move Year to the front of the dataset.
+```{r}
+data <- data %>%
+  relocate (Year, .before = 1)
+head(data)
+  
+```
+8b.	Relocate Population and GDP to appear right after Country Name for better visibility during analysis.
+```{r}
+data <- data%>%
+  relocate(Population,GDP, .after = Country_Name)
+head(data)
+```
+8c.	Reorder Continent Name and Country Code to appear at the end
+```{r}
+data <- data%>%
+  relocate(`Continent Name`, `Country Code`, .after = last_col())
+head(data)
+```
+9a.	How many unique countries are in the dataset?
+```{r}
+n_distinct(data$`Continent Name`)
+```
+9b.	Extract distinct combinations of Country Name and Continent Name.
+```{r}
+data %>%
+  distinct(Country_Name, `Continent Name`)
+```
+
+
+9c.	How many distinct years of data are available?
+```{r}
+n_distinct(data$Year)
+```
+10a.	Display the first 10 rows of countries sorted by Population Density for 2020.
+```{r}
+data %>%
+  filter(Year == 2020) %>%
+  arrange(desc(`Population Density`)) %>%
+  slice_head(n = 10)
+```
+10b. Show the last 5 entries of GDP figures for Nigeria.
+```{r}
+data %>%
+  filter(Country_Name == "Nigeria") %>%
+  arrange(Year) %>%
+  slice_tail(n = 5)
+
+```
+10c.	Slice to extract the 3rd to 7th rows from data on South American countries.
+```{r}
+data %>% 
+  filter(`Continent Name`== "South America") %>%
+  slice(3:7)
+```
+11a comparing the performance between base R and Dplyr for 'Which countries in 2010 had a GDP greater than $500 billion?'
+```{r}
+time_base_a <- system.time({
+  base_a <- data[data$Year == 2010 & data$GDP > 500e9, c("Country_Name", "GDP")]
+})
+time_base_a
+
+
+
+time_dplyr_a <- system.time({
+  dplyr_a <- data %>%
+    filter(Year == 2010, GDP > 500e9) %>%
+    select(Country_Name, GDP)
+})
+time_dplyr_a
+```
+11b. comparing the performance between base R and Dplyr for 'Filter the data to show only African countries with a population density greater than 100'.
+```{r}
+time_base_b <- system.time({
+  base_b <- data[data$`Continent Name`== "Africa" & data$`Population Density` > 100, c("Country_Name", "Population Density")]
+})
+ time_base_b
+ 
+ 
+ time_dplyr_b <- system.time({
+  dplyr_b <- data %>%
+    filter(`Continent Name`== "Africa", `Population Density` > 100) %>%
+    select(Country_Name, `Population Density`)
+})
+time_dplyr_b
+```
+11c. comparing the performance between base R and Dplyr for 'What countries had both an agriculture contribution of less than 10% and health expenditure above 8% of GDP?'
+```{r}
+time_base_c <- system.time({
+  base_c <- data[data$`Agriculture (% GDP)` < 10 & data$`health_pct_gdp` > 8,
+                 c("Country_Name", "Agriculture (% GDP)", "health_pct_gdp")]
+})
+time_base_c
+
+time_dplyr_c <- system.time({
+  dplyr_c <- data %>%
+    filter(`Agriculture (% GDP)` < 10, `health_pct_gdp` > 8) %>%
+    select(Country_Name, `Agriculture (% GDP)`, `health_pct_gdp`)
+})
+time_dplyr_c
+
+```
+11d.comparing the performance between base R and Dplyr for 'List the countries from Asia where Education Expenditure was not missing in the year 2005.'
+```{r}
+time_base_d <- system.time({
+  base_d <- data[data$`Continent Name` == "Asia" & data$Year == 2005 & !is.na(data$`Education Expenditure (% GDP)`),
+                 c("Country_Name", "Education Expenditure (% GDP)")]
+})
+time_base_d
+
+time_dplyr_d <- system.time({
+  dplyr_d <- data %>%
+    filter(`Continent Name` == "Asia", Year == 2005, !is.na(`Education Expenditure (% GDP)`)) %>%
+    select(Country_Name, `Education Expenditure (% GDP)`)
+})
+time_dplyr_d
+
+
+```
+```{r}
+head(data)
+
+```
+
+
+
+
+
