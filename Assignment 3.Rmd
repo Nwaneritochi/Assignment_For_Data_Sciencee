@@ -1,0 +1,165 @@
+---
+title: "Assignment-3-Data-Manipulation-in-R"
+author: "Nwaneri Tochi , Mr. Charles Nworu"
+date: "2025-04-29"
+output: html_document
+---
+
+
+```{r,load_library, include=FALSE}
+library(dplyr)
+library(readxl)
+
+# Load Excel document
+my_data <- read_excel("Countries.xlsx")
+
+
+```
+
+
+# 1. How does the GDP per Capita in 2000 compare between countries in Asia and countries in Africa?
+```{r}
+data_2000 <- my_data%>%
+  filter(Year == 2000)
+
+asia_2000 <- my_data%>%
+  filter (`Continent Name`== "asia")%>%
+select(`Country Code`,`Country Name`,`GDP Per Capita`)
+
+africa_2000 <- my_data%>%
+  filter(`Continent Name` == "asia")%>%
+  select(`Country Code`,`Country Name`, `GDP Per Capita`)
+
+joined <- inner_join(
+  asia_2000,africa_2000, by = 'Country Code',
+  suffix = c("Asia","Africa")
+)
+
+comparison <- joined%>%
+  mutate(GDP_Difference = `GDP Per CapitaAsia`-`GDP Per CapitaAfrica`)%>%
+  arrange(desc(abs(GDP_Difference)))
+
+comparison
+```
+
+
+
+
+# 2. Can we enrich a dataset of country codes from 2020 with full details from this dataset using right_join()?
+```{r}
+#Get all unique country codes from 2020
+
+codes_2020 <- my_data%>%
+filter(Year == 2020)%>%
+  select(`Country Code`)%>%
+  distinct()%>%
+  mutate(Year= 2020)
+
+#Right join to enrich
+enriched_data <- right_join(
+  my_data,codes_2020, by = c("Year","Country Code")
+)
+head(enriched_data)
+```
+
+# 3.   Which countries in 2000 reported data for Health Expenditure but not for Export values?
+```{r}
+#Get Countries with Health Expenditure data
+
+health_2000 <- data_2000%>%
+  filter(!is.na(`Health Expenditure`))%>%
+  select(`Country Name`,`Country Code`)
+
+#Get countries with Export data
+export_2000 <- data_2000%>%
+  filter(!is.na(Export))%>%
+  select(`Country Name`, `Country Code`)
+
+#Countries with Health Expenditure
+has_health <- semi_join(data_2000,health_2000,by = "Country Code")
+
+#Exclude countries that also reported Export values 
+final_result <- anti_join(has_health,export_2000,by = "Country Code")
+
+#View result
+final_result%>%select("Country Name","Country Code","Health Expenditure")
+```
+
+
+# 4.Which countries appear in both the 2000 and 2010 datasets?
+```{r}
+# Extract county Names for 2000 and 2010
+countries_2000 <- my_data%>%
+  filter(Year == 2000)%>%
+  pull(`Country Name`)%>%
+  unique()
+
+countries_2010 <- my_data%>%
+  filter(Year == 2010)%>%
+  pull(`Country Name`)%>%
+  unique()
+
+#Find the intersection of both lists
+common_countries <- intersect(countries_2000,countries_2010)
+common_countries
+```
+
+# 5.Within each continent, which country had the highest GDP per Capita  in 2010?
+```{r}
+top_gdp_per_capita_rate <- my_data%>%
+  filter(Year==2010)%>%
+  group_by(`Continent Name`)%>%
+  filter(rank(desc(`GDP Per Capita`))==1)%>%
+ungroup()
+top_gdp_per_capita_rate
+```
+
+
+# 6. For a selected country (e.g., Nigeria), how did the GDP Per Capita change year-over-year?
+```{r}
+nigeria_gdp_change <- my_data%>%
+  filter(`Country Name` == "Nigeria")%>%
+  arrange(Year)%>%
+  mutate(
+    gdp_lag = lag(`GDP Per Capita`),
+    gdp_change = `GDP Per Capita` -`gdp_lag`
+  )
+
+
+nigeria_gdp_change
+```
+
+# 7.  What is the cumulative Health Expenditure of each country from 2000 to 2005?
+```{r}
+cumulative_health <- my_data %>%
+  filter (Year >= 2000, Year <=2005)%>%
+  arrange(`Country Name`,`Year`)%>%
+  group_by(`Country Name`)%>%
+  mutate(cum_health = cumsum(`Health Expenditure`))%>%
+  ungroup()
+
+cumulative_health
+```
+
+
+
+# 8. What is the mean of all numeric economic indicators (like GDP,Education Expenditure) for each country in 2015?  
+```{r}
+economic_mean_2015 <- my_data%>%
+filter(Year == 2015)%>%
+group_by(`Country Name`)%>%
+summarise(across(where(is.numeric),mean,na.rm = T))
+
+economic_mean_2015
+```
+
+
+# 9. Which rows have at least one economic indicator (e.g., Export, Import,Health, Education) greater than 15% of GDP?
+```{r}
+high_econ_indicators <- my_data%>%
+  filter(if_any(ends_with("% GDP"), ~. > 15))
+
+high_econ_indicators
+```
+
+
