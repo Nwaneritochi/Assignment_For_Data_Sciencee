@@ -1,0 +1,207 @@
+---
+title: "Data-Visualzation-In-R-Assignmen"
+author: "Nwaneri Tochi , Mr. Charles Nworu"
+date: "2025-05-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(readxl)
+library()
+```
+
+
+```{r, echo=FALSE}
+# Load Excel document
+ 
+my_data <- read_excel("Countries.xlsx")
+head(my_data)
+```
+
+
+
+
+# 1 . Create a histogram of the GDP Per Capita for each continent. What does the shape of the distribution suggest about each continent’s economic status.
+```{r}
+continents <- unique(my_data$`Contienet Name`)
+for (cont in continents){
+  hist(my_data$`GDP Per Capita`[
+    my_data$`Continent Name`== cont
+  ],
+  main = paste("GDP Per Capita_", cont),
+  col = "blue",
+  xlab = "GDP Per Capita",
+  border = "black"
+  )
+}
+#Interpretaion
+#Africa: GDP is right-skewed(few rich counteies, many poor)
+#Europe: More symmetric; most countries moderately wealthy.
+#Asia: Bimodal (very rich and very poor countries)
+#others: Smaller number of countries,higher variance
+
+```
+
+
+# 2 . Use a boxplot to detect outliers in Inflation Rate. Which countries might be experiencing economic instability?
+```{r}
+boxplot(
+  my_data$`Inflation Rate`,
+  main = "boxplot of Inflation Rate",
+  ylab = "Inflation Rate(%)",
+  col = "blue",
+  border = "black"
+)
+outliers <- my_data$`Country Name`[
+  my_data$`Inflation Rate`%in% boxplot.stats(my_data$`Inflation Rate`)$out
+]
+outliers
+```
+# 3 . How many countries are represented in each Continent Name? Which continent is most represented?
+```{r}
+barplot(table(my_data$`Country Name`),
+        main = "Countries Per Continent",
+        ylab = "Number of Countries",
+        col = "blue",
+        las = 1
+)
+```
+
+# 4 . How has the GDP of Nigeria evolved over the years?
+```{r}
+nigeria <- subset(my_data,`Country Name` =="Nigeria")
+years <- 2000:2022
+nigeria_year <- nigeria[order(nigeria$Year)]
+nigeria_GDP <- nigeria[order(nigeria$GDP)]
+
+plot(nigeria$Year,nigeria$GDP,
+     type = "o",
+     main = "Nigeria's GDP Over Time",
+     xlab = "Year",
+     ylab = "GDP(USD)",
+     col = "green",
+     pch = 15,
+     lwd = 1,
+     )
+```
+
+# 5 . What relationship exists between GDP Per Capita and Unemployment?
+```{r}
+plot(my_data$`GDP Per Capita`,
+     my_data$Unemployment,
+     main = "GDP Per Capita vs unemployment",
+     xlab = "GDP Per Capita",
+     ylab = "Unemployment Rate(%)",
+     col = "blue",
+     pch = 15,
+     )
+```
+
+# 6 . Fit and interpret a regression line between GDP Per Capita and Unemployment. What insight does it provide?
+```{r}
+model <- lm(`Unemployment` ~ `GDP Per Capita`,
+            data = my_data)
+summary(model)
+
+plot(
+  my_data$Unemployment,my_data$`GDP Per Capita`,
+  main = "GDP Per Capita vs Unemployment",
+  xlab = "Unemployment Rate(%)",
+  ylab = "GDP Per Capita(USD)",
+  pch = 11,
+  col = "green"
+)
+abline(model,
+       col = "green",
+       lwd = 2)
+
+
+```
+
+# 7 . Which 10 countries have the highest Population Density?
+```{r}
+top_density <-
+my_data[order(-my_data$`Population Density`),][1:10,]
+barplot(top_density$`Population Density`,
+names.arg = top_density$`Country Name`,
+las = 2,
+main = "Top 10 Countries by Population Density",
+col = "green",
+ylab = "population Density"
+)
+```
+
+# 8 . How does the average Health Expenditure (% GDP) compare across continents?
+```{r}
+health_exp <- aggregate(`Health Expenditure`~`Continent Name`,data = my_data,mean)
+
+barplot(health_exp$`Health Expenditure`,
+        names.arg = health_exp$`Continent Name`,
+        main = "Average Health Expenditure by Continent",
+        col = "blue",
+        ylab = "% of GDP",
+        las = 1)
+```
+
+# 9 . Choose any plot and enhance it by including a clear main, xlab, ylab, and legend (if needed).Explain how each element improves understanding.
+```{r}
+plot(my_data$`GDP Per Capita`,
+     my_data$`Unemployment`,
+     main = "GDP Per Capita vs Unemployment Rate",
+     vlab = "GDP Per Capita(USD)",
+     ylab = "Unemployment Rate(%0",
+     col = "darkblue",
+     pch = 16,
+     )
+legend("topright",
+       legend = "countries",
+       col = "darkblue",
+       pch = 16)
+#Explanation
+#Title: Explains full content
+#legend: Identifies points easily if grouped by color later
+```
+
+# 10 . Compare India’s GDP Per Capita trend over time to the global average. What patterns emerge at different levels of granularity?
+```{r}
+#Extract India's data 
+india <- subset(my_data,`Country Name` == "india")
+india <- india[order(india$Year),]
+
+#Calcuate Global Average GDP Per Capita by Year
+global_avg <- aggregate(`GDP Per Capita`~ Year,
+                        data = my_data,
+                        FUN = mean, na.rm = T)
+
+#plot India's GDP Per Capita
+plot(india$Year,
+     india$`GDP Per Capita`,
+     type = "o",
+     col = "green",
+     ylim = c(0,max(c(india$`GDP Per Capita`,global_avg$`GDP Per Capita`))),
+     xlim = c(0,max(c(india$`GDP Per Capita`,global_avg$`GDP Per Capita`))),
+main = "india vs Global GDP Per Capita Trend",
+xlab = "Year",
+ylab = "GDP Per Capita",
+pch = 16
+)
+
+#Add global average line
+lines(global_avg$Year,global_avg$`GDP Per Capita`,
+      col = "black",
+      lty = 2,
+      pch = 17,
+      type = "o")
+#add a legend
+legend("topleft",
+       legend = c("India","Global Average"),
+       col = c("black","blue"),
+       lty = 1:2,
+       pch = c(16,17))
+#from the plot, we observe that India's GDP Per Capita has been growing steadily over the years. However, it generally remains lower than the global average GDP Per Capita.
+#While the gap has been narrowing in recent years due to India's faster economic growth compared to some other parts of the world, India's Per Capita income still lags behind the global mean, indicating room for further economic development and income growth relative to global standars.
+```
+
+
+
